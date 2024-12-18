@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Matching Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: white;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 20px 0;
+    }
+
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin: 20px auto;
+      width: max-content;
+    }
+
+    .card {
+      width: 100px;
+      height: 140px;
+      background-color: #333;
+      border-radius: 8px;
+      cursor: pointer;
+      position: relative;
+      perspective: 1000px;
+    }
+
+    .card-inner {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 8px;
+    }
+
+    .card-front {
+      background-color: #444;
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+      background-size: cover;
+      background-position: center;
+    }
+
+    #timer {
+      font-size: 1.5em;
+      margin: 20px 0;
+    }
+
+    #play-again {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1em;
+      color: white;
+      background-color: #444;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #play-again:hover {
+      background-color: #666;
+    }
+
+    #leaderboard {
+      margin-top: 30px;
+      background-color: #444;
+      padding: 10px;
+      border-radius: 8px;
+      color: gold;
+    }
+
+    #leaderboard h2 {
+      margin: 0 0 10px 0;
+    }
+
+    #leaderboard ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    #leaderboard li {
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Space Matching Game</h1>
+  <div id="timer">Time Remaining: 40s</div>
+  <div id="game-board"></div>
+  <button id="play-again" style="display: none;">Play Again</button>
+
+  <!-- Leaderboard Section -->
+  <div id="leaderboard">
+    <h2>Leaderboard</h2>
+    <ul id="leaderboard-list">
+      <!-- Fastest times will appear here -->
+    </ul>
+  </div>
+
+  <script>
+    const images = [
+      "fsimgs/character1.jpg",
+      "fsimgs/character2.jpg",
+      "fsimgs/character3.jpg",
+      "fsimgs/character4.jpg",
+      "fsimgs/character5.jpg",
+      "fsimgs/character6.jpg"
+    ];
+
+    const gameBoard = document.getElementById("game-board");
+    const timerElement = document.getElementById("timer");
+    const playAgainButton = document.getElementById("play-again");
+    const leaderboardList = document.getElementById("leaderboard-list");
+
+    let timeRemaining = 40;
+    let countdown;
+    let gameStarted = false;
+    let startTime;
+    let gameDuration = 0;
+
+    // Countdown Timer
+    function startTimer() {
+      startTime = Date.now();
+      countdown = setInterval(() => {
+        timeRemaining--;
+        timerElement.textContent = `Time Remaining: ${timeRemaining}s`;
+
+        if (timeRemaining <= 0) {
+          clearInterval(countdown);
+          gameDuration = Math.floor((Date.now() - startTime) / 1000);
+          alert(`Time's up! Your time: ${gameDuration}s`);
+          saveTime(gameDuration);
+          resetGame();
+        }
+      }, 1000);
+    }
+
+    function resetGame() {
+      gameBoard.innerHTML = "";
+      timeRemaining = 40;
+      timerElement.textContent = `Time Remaining: ${timeRemaining}s`;
+      matchedCards = 0;
+      flippedCards = [];
+      gameStarted = false;
+      playAgainButton.style.display = "none";
+      setupBoard();
+    }
+
+    // Create a deck by duplicating the images and shuffling
+    const deck = [...images, ...images].sort(() => Math.random() - 0.5);
+
+    let flippedCards = [];
+    let matchedCards = 0;
+
+    function createCard(image) {
+      const card = document.createElement("div");
+      card.classList.add("card");
+
+      const cardInner = document.createElement("div");
+      cardInner.classList.add("card-inner");
+
+      const cardFront = document.createElement("div");
+      cardFront.classList.add("card-front");
+
+      const cardBack = document.createElement("div");
+      cardBack.classList.add("card-back");
+      cardBack.style.backgroundImage = `url(${image})`;
+
+      cardInner.appendChild(cardFront);
+      cardInner.appendChild(cardBack);
+      card.appendChild(cardInner);
+
+      card.addEventListener("click", () => {
+        if (!gameStarted) {
+          gameStarted = true;
+          startTimer();
+        }
+        flipCard(card, image);
+      });
+
+      return card;
+    }
+
+    function flipCard(card, image) {
+      if (flippedCards.length >= 2 || card.classList.contains("flipped")) return;
+
+      card.classList.add("flipped");
+      flippedCards.push({ card, image });
+
+      if (flippedCards.length === 2) {
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      const [firstCard, secondCard] = flippedCards;
+
+      if (firstCard.image === secondCard.image) {
+        matchedCards += 2;
+        flippedCards = [];
+
+        if (matchedCards === deck.length) {
+          gameDuration = Math.floor((Date.now() - startTime) / 1000);
+          clearInterval(countdown);
+          setTimeout(() => {
+            alert(`You Win! Your time: ${gameDuration}s`);
+            saveTime(gameDuration);
+            playAgainButton.style.display = "block";
+          }, 500);
+        }
+      } else {
+        setTimeout(() => {
+          firstCard.card.classList.remove("flipped");
+          secondCard.card.classList.remove("flipped");
+          flippedCards = [];
+        }, 1000);
+      }
+    }
+
+    function saveTime(time) {
+      // Get leaderboard from localStorage
+      let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+
+      // Add new time and sort leaderboard
+      leaderboard.push(time);
+      leaderboard.sort((a, b) => a - b);
+
+      // Save leaderboard back to localStorage
+      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+
+      // Update leaderboard display
+      displayLeaderboard(leaderboard);
+    }
+
+    function displayLeaderboard(leaderboard) {
+      leaderboardList.innerHTML = "";
+      leaderboard.slice(0, 5).forEach((time, index) => {
+        const li = document.createElement("li");
+        li.textContent = `#${index + 1} - ${time}s`;
+        leaderboardList.appendChild(li);
+      });
+    }
+
+    function setupBoard() {
+      // Shuffle the deck randomly
+      const shuffledDeck = [...deck];
+      shuffledDeck.sort(() => Math.random() - 0.5);
+
+      shuffledDeck.forEach(image => {
+        const card = createCard(image);
+        gameBoard.appendChild(card);
+      });
+    }
+
+    playAgainButton.addEventListener("click", resetGame);
+
+    // Display leaderboard on page load
+    const leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    displayLeaderboard(leaderboard);
+
+    setupBoard();
+  </script>
+</body>
+</html>

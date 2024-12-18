@@ -1,0 +1,11 @@
+.italiBold{
+    font-style: italic;
+    font-weight: 100 !important; 
+    font-size: 100 !important; 
+}
+.closer{
+    margin: 5px;
+}
+.expText{
+    font-size: 50;
+}
